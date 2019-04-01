@@ -1,0 +1,23 @@
+{
+  "name": "aws-s3-mirror-folder",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "start-dev": "nodemon index.js",
+    "sync-all": "node index.js --all",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Miguel Medeiros",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.432.0",
+    "chokidar": "^2.1.5",
+    "npm-watch": "^0.6.0",
+    "watch": "^1.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.10"
+  }
+}

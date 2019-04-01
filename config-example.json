@@ -1,0 +1,7 @@
+{
+  "bucketName": "name-of-your-bucket",
+  "accessKeyId": "XXXXXXXXXXXXXXXXXX",
+  "secretAccessKey": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "region": "us-east-1",
+  "folder": "images"
+}
