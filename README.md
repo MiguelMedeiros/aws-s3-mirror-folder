@@ -39,6 +39,11 @@ And if you want to sync all files:
 `yarn sync-all`
 
 
+## About the logs
+
+You can watch all the log information in the file: `./cheese.log`
+
+
 ## Donation
 If you like it, you can pay me a beer! :beer:
 
