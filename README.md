@@ -32,7 +32,7 @@ And if you want to sync all files:
 `npm run sync-all`
 
 #### ...with Yarn
-`yarn start`.
+`yarn start`
 
 And if you want to sync all files:
 
