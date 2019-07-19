@@ -2,8 +2,17 @@ const AWS = require("aws-sdk");
 const fs = require("fs");
 const chokidar = require("chokidar");
 const config = require("./config.json");
+const log4js = require('log4js');
 
-//configuring the AWS environment
+// logs
+log4js.configure({
+  appenders: { cheese: { type: 'file', filename: 'cheese.log' } },
+  categories: { default: { appenders: ['cheese'], level: 'error' } }
+});
+let logger = log4js.getLogger();
+logger.level = 'debug';
+
+// AWS
 AWS.config.update({
   accessKeyId: config.accessKeyId,
   secretAccessKey: config.secretAccessKey,
@@ -11,11 +20,6 @@ AWS.config.update({
 });
 
 let s3 = new AWS.S3();
-
-let watcher = chokidar.watch(config.folder, {
-  ignored: /^\./,
-  persistent: true,
-});
 let scanComplete = false;
 let scanReady = false;
 
@@ -23,119 +27,129 @@ if (process.argv.includes("--all")) {
   scanComplete = true;
 }
 
+// watcher
+logger.info('Starting Watcher.');
+let watcher = chokidar.watch(config.folder, {
+  ignored: /^\./,
+  persistent: true,
+  alwaysStat: false,
+  awaitWriteFinish: {
+    stabilityThreshold: 2000,
+    pollInterval: 1000
+  },
+  usePolling: true,
+  interval: 1000,
+  binaryInterval: 3000,
+});
 watcher
   .on("ready", () => {
     scanReady = true;
-    console.log("Watcher Ready!");
+    scanComplete = false;
+    logger.info('Watcher Ready!');
   })
-  .on("add", function(path) {
-    if (scanReady || scanComplete) {
-      // console.log("File", path, "has been added");
-      saveFile(path, scanComplete);
+  .on("add", async function(path) {
+    if(scanComplete){
+      let fileExists = await getFile(path);
+      if(!fileExists){
+        await saveFile(path);
+      }
+    }else{
+      if(scanReady){
+        await saveFile(path);
+      }
     }
   })
-  .on("change", function(path) {
+  .on("change", async function(path) {
     if (scanReady) {
-      // console.log("File", path, "has been changed");
-      saveFile(path);
+      await saveFile(path);
     }
   })
-  .on("unlink", function(path) {
+  .on("unlink", async function(path) {
     if (scanReady) {
-      // console.log("File", path, "has been removed");
-      deleteFile(path);
+      await deleteFile(path);
     }
   })
   .on("error", function(error) {
-    console.error("Error happened", error);
+    logger.error(error);
   });
 
-async function saveFile(filePath, scanComplete = false) {
-  let fileName = filePath.replace(config.folder, "");
-  fileName = fileName.split("\\");
-  fileName = fileName.join("/");
-  console.log("Upload Started:", fileName);
-
-  // Config Variables
-  let getParams = {
-    Bucket: config.bucketName, // your bucket name,
-    Key: fileName, // path to the object you're looking for
-  };
-
-  let uploadParams = {
-    Bucket: config.bucketName,
-    Body: fs.createReadStream(filePath),
-    Key: fileName,
-  };
-
-  if (scanComplete) {
-    s3.getObject(getParams, function(err, data) {
-      // Handle any error and exit
-      if (err) return err;
-
-      // No error happened
-      // Convert Body from a Buffer to a String
-      // let objectData = data.Body.toString("utf-8"); // Use the encoding necessary
-      if (!data) {
-        // console.log(data);
-
-        return s3.upload(uploadParams, function(err, data) {
-          // handle error
-          if (err) {
-            console.log("Error", err);
-          }
-
-          // success
-          if (data) {
-            console.log("Uploaded file:", data.Location);
-          }
-        });
-      } else {
-        console.log(fileName + " already uploaded!");
-      }
-    });
-  } else {
-    // configuring parameters
+let saveFile = async (filePath) => {
+  try {
+    let fileName = getFileName(filePath);
     var params = {
       Bucket: config.bucketName,
       Body: fs.createReadStream(filePath),
       Key: fileName,
     };
 
-    return s3.upload(params, function(err, data) {
-      // handle error
-      if (err) {
-        console.log("Error", err);
-      }
-
-      // success
-      if (data) {
-        console.log("Uploaded file:", data.Location);
-      }
+    return await s3.upload(params, function(err, data) {
+      return handleError("UPLOAD", err, data, fileName);
     });
+  } catch (error) {
+    // logger.error(error);
+    // console.log(error);
   }
-}
+};
 
-async function deleteFile(filePath) {
-  let fileName = filePath.replace(config.folder, "");
-  fileName = fileName.split("\\");
-  fileName = fileName.join("/");
+let getFile = async (filePath) => {
+  try {
+    let fileName = getFileName(filePath);
+    let params = {
+      Bucket: config.bucketName,
+      Key: fileName,
+    };
 
-  // configuring parameters
-  var params = {
-    Bucket: config.bucketName,
-    Key: fileName,
-  };
+    const fileExists = await s3.getObject(params, function(err, data) {
+      return handleError("GET", err, data, fileName);
+    }).promise();
 
-  return await s3.deleteObject(params, function(err, data) {
-    // handle error
+    if(typeof fileExists.Body !== 'undefined'){
+      return true;
+    }else{
+      return false;
+    }
+  } catch (error) {
+    // logger.error(error);
+    // console.log(error);
+  }
+};
+
+let deleteFile = async (filePath) => {
+  try {
+    let fileName = getFileName(filePath);
+    var params = {
+      Bucket: config.bucketName,
+      Key: fileName,
+    };
+
+    return await s3.deleteObject(params, function(err, data) {
+      return handleError("DELETE", err, data, fileName);
+    });
+  } catch (error) {
+    // logger.error(error);
+    // console.log(error);
+  }
+};
+
+let getFileName = (filePath) => {
+  return filePath.replace(config.folder, "").split("\\").join("/");
+};
+
+let handleError = (type, err, data, fileName) => {
+  // handle error
+  if(type !== 'GET'){
     if (err) {
-      console.log("Error", err);
+      logger.error(fileName, err);
+      return false;
     }
+  }
 
-    // success
-    if (data) {
-      console.log("Deleted file:", fileName);
-    }
-  });
-}
+  // success
+  if (data) {
+    logger.info(type + ":", fileName);
+    return true;
+  }else{
+    logger.warn(type + " failed:", fileName);
+    return false;
+  }
+};

@@ -1,11 +1,12 @@
 {
   "name": "aws-s3-mirror-folder",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "start-dev": "nodemon index.js",
+    "start-dev-all": "nodemon index.js --all",
     "sync-all": "node index.js --all",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -14,6 +15,7 @@
   "dependencies": {
     "aws-sdk": "^2.432.0",
     "chokidar": "^2.1.5",
+    "log4js": "^4.5.1",
     "npm-watch": "^0.6.0",
     "watch": "^1.0.2"
   },
