@@ -13,13 +13,13 @@
   "author": "Miguel Medeiros",
   "license": "ISC",
   "dependencies": {
-    "aws-sdk": "^2.432.0",
-    "chokidar": "^2.1.5",
+    "aws-sdk": "^2.674.0",
+    "chokidar": "^2.1.8",
     "log4js": "^4.5.1",
     "npm-watch": "^0.6.0",
     "watch": "^1.0.2"
   },
   "devDependencies": {
-    "nodemon": "^1.18.10"
+    "nodemon": "^1.19.4"
   }
 }
