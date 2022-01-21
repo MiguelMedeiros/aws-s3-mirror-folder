@@ -15,7 +15,7 @@
   "dependencies": {
     "aws-sdk": "^2.674.0",
     "chokidar": "^2.1.8",
-    "log4js": "^4.5.1",
+    "log4js": "^6.4.0",
     "npm-watch": "^0.6.0",
     "watch": "^1.0.2"
   },
